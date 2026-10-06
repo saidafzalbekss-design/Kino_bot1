@@ -5,7 +5,7 @@ import os
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 # Render'da ADMIN_IDS = 111,222 ko'rinishida ham berish mumkin
-_admins = os.getenv("ADMIN_IDS", "8748576231,8137244603")
+_admins = os.getenv("ADMIN_IDS", "8748576232,8137244603")
 ADMIN_IDS = [int(x) for x in _admins.replace(" ", "").split(",") if x]
 
 DB_PATH = os.getenv("DB_PATH", "kino.db")

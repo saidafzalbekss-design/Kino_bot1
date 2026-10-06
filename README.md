@@ -1,4 +1,6 @@
-# kino_bot
-# kino_bot
-# Kino_bot1
-# Kino_bot1
+# Kino Bot (aiogram 3)
+
+Render'da ishga tushirish:
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `python main.py`
+- Environment Variables: `BOT_TOKEN` = BotFather tokeni

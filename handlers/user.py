@@ -4,7 +4,7 @@ from aiogram.types import CallbackQuery, Message
 from config import PAGE_SIZE
 from database import count_movies, get_movies_page
 from keyboards import main_menu, movies_kb
-from utils import has_vip_access, safe_edit, send_movie, vip_denied_text
+from utils import has_vip_access, send_movie, show_below, vip_denied_text
 
 router = Router()
 
@@ -16,7 +16,7 @@ async def cb_list(call: CallbackQuery) -> None:
     movies = await get_movies_page(page, PAGE_SIZE, vip=False)
 
     text = "🎬 Kinoni tanlang:" if total else "Hozircha kino yo'q."
-    await safe_edit(call.message, text, movies_kb(movies, page, total, "list"))
+    await show_below(call, text, movies_kb(movies, page, total, "list"))
     await call.answer()
 
 
@@ -31,7 +31,7 @@ async def cb_viplist(call: CallbackQuery) -> None:
     movies = await get_movies_page(page, PAGE_SIZE, vip=True)
 
     text = "💎 VIP kinolar:" if total else "💎 Hozircha VIP kino yo'q."
-    await safe_edit(call.message, text, movies_kb(movies, page, total, "viplist"))
+    await show_below(call, text, movies_kb(movies, page, total, "viplist"))
     await call.answer()
 
 

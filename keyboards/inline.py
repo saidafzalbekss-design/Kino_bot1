@@ -13,7 +13,10 @@ def _btn(text: str, data: str) -> InlineKeyboardButton:
 
 
 def main_menu(user_id: int) -> InlineKeyboardMarkup:
-    rows = [[_btn("🎬 Kinolar ro'yxati", "list:0")]]
+    rows = [
+        [_btn("🎬 Kinolar ro'yxati", "list:0")],
+        [_btn("💎 VIP kinolar", "viplist:0")],
+    ]
     if user_id in ADMIN_IDS:
         rows.append(
             [
@@ -42,16 +45,19 @@ def cancel_kb() -> InlineKeyboardMarkup:
 
 def movies_kb(movies, page: int, total: int, mode: str) -> InlineKeyboardMarkup:
     """
-    movies: [(code, title), ...]
-    mode:   'list'    -> kinoni ko'rish
+    movies: [(code, title, is_vip), ...]
+    mode:   'list'    -> oddiy kinolarni ko'rish
+            'viplist' -> VIP kinolarni ko'rish
             'dellist' -> kinoni o'chirish (faqat admin)
     """
     rows = []
-    for code, title in movies:
-        if mode == "list":
-            rows.append([_btn(f"🎬 {title}"[:60], f"movie:{code}")])
+    for code, title, is_vip in movies:
+        if mode in ("list", "viplist"):
+            icon = "💎" if is_vip else "🎬"
+            rows.append([_btn(f"{icon} {title}"[:60], f"movie:{code}")])
         else:
-            rows.append([_btn(f"🗑 {code} — {title}"[:60], f"del:{code}")])
+            icon = "💎 " if is_vip else ""
+            rows.append([_btn(f"🗑 {icon}{code} — {title}"[:60], f"del:{code}")])
 
     nav = []
     if page > 0:
@@ -63,6 +69,18 @@ def movies_kb(movies, page: int, total: int, mode: str) -> InlineKeyboardMarkup:
 
     rows.append([_btn("🏠 Bosh menyu", "home")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def vip_choice_kb() -> InlineKeyboardMarkup:
+    """Kino qo'shishda: oddiy yoki VIP tanlash."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                _btn("🎬 Oddiy", "vipsel:0"),
+                _btn("💎 VIP", "vipsel:1"),
+            ]
+        ]
+    )
 
 
 def confirm_delete_kb(code: str) -> InlineKeyboardMarkup:

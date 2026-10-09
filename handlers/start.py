@@ -1,5 +1,5 @@
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
@@ -15,6 +15,11 @@ WELCOME = "🎬 Salom! Kino kodini yuboring yoki ro'yxatdan tanlang."
 async def cmd_start(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(WELCOME, reply_markup=main_menu(message.from_user.id))
+
+
+@router.message(Command("id"))
+async def cmd_id(message: Message) -> None:
+    await message.answer(f"🆔 Sizning ID raqamingiz: <code>{message.from_user.id}</code>", parse_mode="HTML")
 
 
 @router.callback_query(F.data == "home")

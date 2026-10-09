@@ -1,16 +1,23 @@
+from datetime import datetime, timezone
+
 import aiosqlite
-from aiogram import F, Router
-from aiogram.filters import Command
+from aiogram import Bot, F, Router
+from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
 from config import PAGE_SIZE
 from database import (
     add_movie,
+    add_vip,
     count_movies,
     delete_movie,
+    get_movie,
     get_movies_page,
+    list_vips,
     movie_exists,
+    remove_vip,
+    set_movie_vip,
 )
 from filters import IsAdmin
 from keyboards import (
@@ -19,6 +26,7 @@ from keyboards import (
     confirm_delete_kb,
     main_menu,
     movies_kb,
+    vip_choice_kb,
 )
 from states import AddMovie
 from utils import safe_edit
@@ -153,18 +161,45 @@ async def got_title(message: Message, state: FSMContext) -> None:
         await _finish(message, state, "⚠️ Xatolik: video topilmadi. Qaytadan boshlang.")
         return
 
+    await state.update_data(title=title)
+    await state.set_state(AddMovie.vip)
+    await message.answer("Bu kino qaysi bo'limga qo'shilsin?", reply_markup=vip_choice_kb())
+
+
+# --- 4-qadam: oddiy yoki VIP ---
+@router.callback_query(AddMovie.vip, F.data.startswith("vipsel:"))
+async def got_vip_choice(call: CallbackQuery, state: FSMContext) -> None:
+    is_vip = call.data.split(":")[1] == "1"
+    data = await state.get_data()
+    await call.answer()
+
+    if not data.get("file_id") or not data.get("code") or not data.get("title"):
+        await _finish(call.message, state, "⚠️ Xatolik: ma'lumot topilmadi. Qaytadan boshlang.")
+        return
+
     try:
-        await add_movie(data["code"], title, data["file_id"], data["file_type"])
+        await add_movie(
+            data["code"], data["title"], data["file_id"], data["file_type"], is_vip
+        )
     except aiosqlite.IntegrityError:
-        await message.answer("⚠️ Bu kod allaqachon band. Boshqa kod kiriting:", reply_markup=cancel_reply_kb())
+        await call.message.answer(
+            "⚠️ Bu kod allaqachon band. Boshqa kod kiriting:",
+            reply_markup=cancel_reply_kb(),
+        )
         await state.set_state(AddMovie.code)
         return
 
+    section = "💎 VIP" if is_vip else "🎬 Oddiy"
     await _finish(
-        message,
+        call.message,
         state,
-        f"✅ Kino qo'shildi!\nKod: {data['code']}\nNomi: {title}",
+        f"✅ Kino qo'shildi!\nKod: {data['code']}\nNomi: {data['title']}\nBo'lim: {section}",
     )
+
+
+@router.message(AddMovie.vip)
+async def wrong_vip(message: Message) -> None:
+    await message.answer("⚠️ Yuqoridagi tugmalardan birini tanlang.", reply_markup=vip_choice_kb())
 
 
 @router.message(AddMovie.title)
@@ -209,3 +244,80 @@ async def cb_del_yes(call: CallbackQuery) -> None:
     )
     await safe_edit(call.message, text, movies_kb(movies, 0, total, "dellist"))
     await call.answer()
+
+
+# ============ VIP boshqaruvi ============
+@router.message(Command("addvip"))
+async def cmd_addvip(message: Message, command: CommandObject, bot: Bot) -> None:
+    args = (command.args or "").split()
+    ok = (
+        1 <= len(args) <= 2
+        and args[0].isdigit()
+        and (len(args) == 1 or (args[1].isdigit() and int(args[1]) > 0))
+    )
+    if not ok:
+        await message.answer(
+            "Foydalanish:\n"
+            "/addvip <user_id> — muddatsiz VIP\n"
+            "/addvip <user_id> <kun> — masalan: /addvip 123456789 30"
+        )
+        return
+
+    user_id = int(args[0])
+    days = int(args[1]) if len(args) == 2 else None
+    await add_vip(user_id, days)
+
+    term = "muddatsiz" if days is None else f"{days} kun"
+    await message.answer(f"✅ {user_id} VIP qilindi ({term}).")
+    try:
+        await bot.send_message(
+            user_id, f"💎 Tabriklaymiz! Sizga VIP berildi ({term}).\n/start ni bosing."
+        )
+    except Exception:
+        pass  # foydalanuvchi botni hali ishga tushirmagan bo'lishi mumkin
+
+
+@router.message(Command("delvip"))
+async def cmd_delvip(message: Message, command: CommandObject) -> None:
+    arg = (command.args or "").strip()
+    if not arg.isdigit():
+        await message.answer("Foydalanish: /delvip <user_id>")
+        return
+    if await remove_vip(int(arg)):
+        await message.answer(f"🗑 {arg} VIP ro'yxatdan o'chirildi.")
+    else:
+        await message.answer("Bu foydalanuvchi VIP ro'yxatda yo'q.")
+
+
+@router.message(Command("vips"))
+async def cmd_vips(message: Message) -> None:
+    rows = await list_vips()
+    if not rows:
+        await message.answer("Hozircha VIP foydalanuvchi yo'q.")
+        return
+    lines = ["💎 VIP foydalanuvchilar:"]
+    for user_id, expires in rows:
+        if expires is None:
+            until = "muddatsiz"
+        else:
+            until = datetime.fromtimestamp(expires, timezone.utc).strftime("%d.%m.%Y") + " gacha"
+        lines.append(f"{user_id} — {until}")
+    await message.answer("\n".join(lines))
+
+
+@router.message(Command("movievip"))
+async def cmd_movievip(message: Message, command: CommandObject) -> None:
+    """Mavjud kinoni VIP <-> oddiy qilib almashtiradi."""
+    code = (command.args or "").strip()
+    if not code:
+        await message.answer("Foydalanish: /movievip <kino_kodi>")
+        return
+    movie = await get_movie(code)
+    if not movie:
+        await message.answer("😕 Bunday kodli kino topilmadi.")
+        return
+    new_state = not movie[3]
+    await set_movie_vip(code, new_state)
+    await message.answer(
+        f"{code} — {movie[0]}\nEndi: {'💎 VIP' if new_state else '🎬 Oddiy'}"
+    )

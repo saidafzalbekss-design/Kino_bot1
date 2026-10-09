@@ -5,6 +5,7 @@ from .inline import (
     confirm_delete_kb,
     main_menu,
     movies_kb,
+    vip_choice_kb,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "cancel_reply_kb",
     "movies_kb",
     "confirm_delete_kb",
+    "vip_choice_kb",
 ]

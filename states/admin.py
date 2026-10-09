@@ -5,3 +5,4 @@ class AddMovie(StatesGroup):
     video = State()
     code = State()
     title = State()
+    vip = State()

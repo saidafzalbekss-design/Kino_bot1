@@ -1,10 +1,10 @@
 from aiogram import F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from keyboards import main_menu
-from utils import safe_edit
 
 router = Router()
 
@@ -25,5 +25,9 @@ async def cmd_id(message: Message) -> None:
 @router.callback_query(F.data == "home")
 async def cb_home(call: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    await safe_edit(call.message, WELCOME, main_menu(call.from_user.id))
+    try:
+        await call.message.delete()
+    except TelegramBadRequest:
+        pass
+    await call.message.answer(WELCOME, reply_markup=main_menu(call.from_user.id))
     await call.answer()

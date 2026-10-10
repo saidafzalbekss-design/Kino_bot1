@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery, Message
 
 from config import PAGE_SIZE
 from database import count_movies, get_movies_page
-from keyboards import main_menu, movies_kb
+from keyboards import main_menu, movies_kb, vip_contact_kb
 from utils import has_vip_access, send_movie, show_below, vip_denied_text
 
 router = Router()
@@ -23,7 +23,8 @@ async def cb_list(call: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("viplist:"))
 async def cb_viplist(call: CallbackQuery) -> None:
     if not await has_vip_access(call.from_user.id):
-        await call.answer(vip_denied_text(), show_alert=True)
+        await show_below(call, vip_denied_text(), vip_contact_kb())
+        await call.answer()
         return
 
     page = int(call.data.split(":")[1])
@@ -42,7 +43,8 @@ async def cb_movie(call: CallbackQuery) -> None:
     if status == "ok":
         await call.answer()
     elif status == "vip":
-        await call.answer(vip_denied_text(), show_alert=True)
+        await call.message.answer(vip_denied_text(), reply_markup=vip_contact_kb())
+        await call.answer()
     else:
         await call.answer("Kino topilmadi", show_alert=True)
 
@@ -51,9 +53,7 @@ async def cb_movie(call: CallbackQuery) -> None:
 async def by_code(message: Message) -> None:
     status = await send_movie(message, message.text.strip(), message.from_user.id)
     if status == "vip":
-        await message.answer(
-            vip_denied_text(), reply_markup=main_menu(message.from_user.id)
-        )
+        await message.answer(vip_denied_text(), reply_markup=vip_contact_kb())
     elif status == "notfound":
         await message.answer(
             "😕 Bunday kodli kino topilmadi.",

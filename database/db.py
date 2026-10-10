@@ -38,6 +38,14 @@ async def init_db() -> None:
             )
             """
         )
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                user_id   BIGINT PRIMARY KEY,
+                joined_at BIGINT NOT NULL
+            )
+            """
+        )
 
 
 def _affected(status: str) -> int:
@@ -138,3 +146,31 @@ async def list_vips():
             int(time.time()),
         )
     return [(r["user_id"], r["expires_at"]) for r in rows]
+
+
+# ============ Foydalanuvchilar (statistika uchun) ============
+async def add_user(user_id: int) -> None:
+    """Botdan foydalangan odamni yozib qo'yadi (bor bo'lsa tegmaydi)."""
+    async with _pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO users (user_id, joined_at) VALUES ($1, $2) "
+            "ON CONFLICT (user_id) DO NOTHING",
+            user_id, int(time.time()),
+        )
+
+
+async def count_users(since: int | None = None) -> int:
+    """since=None -> hamma foydalanuvchilar, aks holda shu vaqtdan keyin qo'shilganlar."""
+    async with _pool.acquire() as conn:
+        if since is None:
+            return await conn.fetchval("SELECT COUNT(*) FROM users")
+        return await conn.fetchval("SELECT COUNT(*) FROM users WHERE joined_at >= $1", since)
+
+
+async def count_vips() -> int:
+    """Muddati o'tmagan VIP a'zolar soni."""
+    async with _pool.acquire() as conn:
+        return await conn.fetchval(
+            "SELECT COUNT(*) FROM vip_users WHERE expires_at IS NULL OR expires_at > $1",
+            int(time.time()),
+        )

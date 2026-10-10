@@ -17,10 +17,10 @@ async def has_vip_access(user_id: int) -> bool:
 
 
 def vip_denied_text() -> str:
-    text = "💎 Bu bo'lim faqat VIP a'zolar uchun.\nVIP olish uchun admin bilan bog'laning."
-    if VIP_CONTACT:
-        text += f"\n{VIP_CONTACT}"
-    return text
+    return (
+        "💎 Bu bo'lim faqat VIP a'zolar uchun.\n\n"
+        "VIP bo'lish uchun pastdagi tugma orqali adminga shaxsiy xabar yozing."
+    )
 
 
 async def send_movie(target: Message, code: str, user_id: int) -> str:

@@ -1,7 +1,10 @@
 from .db import (
     add_movie,
+    add_user,
     add_vip,
     count_movies,
+    count_users,
+    count_vips,
     delete_movie,
     get_movie,
     get_movies_page,
@@ -26,4 +29,7 @@ __all__ = [
     "remove_vip",
     "is_vip",
     "list_vips",
+    "add_user",
+    "count_users",
+    "count_vips",
 ]

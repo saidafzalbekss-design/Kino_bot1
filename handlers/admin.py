@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timezone
 
 import asyncpg
@@ -11,6 +12,8 @@ from database import (
     add_movie,
     add_vip,
     count_movies,
+    count_users,
+    count_vips,
     delete_movie,
     get_movie,
     get_movies_page,
@@ -320,4 +323,27 @@ async def cmd_movievip(message: Message, command: CommandObject) -> None:
     await set_movie_vip(code, new_state)
     await message.answer(
         f"{code} — {movie[0]}\nEndi: {'💎 VIP' if new_state else '🎬 Oddiy'}"
+    )
+
+
+# ============ Statistika ============
+@router.message(Command("stats"))
+async def cmd_stats(message: Message) -> None:
+    now = int(time.time())
+    users = await count_users()
+    today = await count_users(since=now - 86400)
+    week = await count_users(since=now - 7 * 86400)
+    movies = await count_movies()
+    normal = await count_movies(vip=False)
+    vip_movies = await count_movies(vip=True)
+    vip_members = await count_vips()
+    await message.answer(
+        "📊 Statistika\n\n"
+        f"👥 Foydalanuvchilar: {users}\n"
+        f"   • oxirgi 24 soatda: +{today}\n"
+        f"   • oxirgi 7 kunda: +{week}\n\n"
+        f"🎬 Kinolar: {movies}\n"
+        f"   • oddiy: {normal}\n"
+        f"   • VIP: {vip_movies}\n\n"
+        f"💎 VIP a'zolar: {vip_members}"
     )

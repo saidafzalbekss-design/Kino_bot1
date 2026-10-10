@@ -5,7 +5,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
 )
 
-from config import ADMIN_IDS, PAGE_SIZE
+from config import ADMIN_IDS, PAGE_SIZE, VIP_CONTACT
 
 
 def _btn(text: str, data: str) -> InlineKeyboardButton:
@@ -92,3 +92,12 @@ def confirm_delete_kb(code: str) -> InlineKeyboardMarkup:
             ]
         ]
     )
+def vip_contact_kb() -> InlineKeyboardMarkup:
+    """VIP olmoqchi bo'lganlar uchun: admin lichkasiga o'tish tugmalari."""
+    usernames = [u.strip().lstrip("@") for u in VIP_CONTACT.split(",") if u.strip()]
+    rows = []
+    for i, username in enumerate(usernames, start=1):
+        label = "✍️ Adminga yozish" if len(usernames) == 1 else f"✍️ {i}-adminga yozish"
+        rows.append([InlineKeyboardButton(text=label, url=f"https://t.me/{username}")])
+    rows.append([_btn("🏠 Bosh menyu", "home")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

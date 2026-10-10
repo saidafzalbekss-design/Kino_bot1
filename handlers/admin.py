@@ -181,7 +181,7 @@ async def got_vip_choice(call: CallbackQuery, state: FSMContext) -> None:
         await add_movie(
             data["code"], data["title"], data["file_id"], data["file_type"], is_vip
         )
-    except aiosqlite.IntegrityError:
+    except asyncpg.UniqueViolationError:
         await call.message.answer(
             "⚠️ Bu kod allaqachon band. Boshqa kod kiriting:",
             reply_markup=cancel_reply_kb(),

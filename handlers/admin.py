@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-import aiosqlite
+import asyncpg
 from aiogram import Bot, F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext

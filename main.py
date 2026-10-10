@@ -10,6 +10,7 @@ from aiohttp import web
 from config import BOT_TOKEN
 from database import init_db
 from handlers import admin, start, user
+from middlewares import TrackUsers
 
 # Render o'zi RENDER_EXTERNAL_URL beradi (masalan https://kino-bot.onrender.com)
 BASE_URL = (os.getenv("WEBHOOK_URL") or os.getenv("RENDER_EXTERNAL_URL", "")).rstrip("/")
@@ -49,6 +50,9 @@ def main() -> None:
 
     # Tartib muhim: admin handlerlari user'ning umumiy (catch-all) handleridan oldin turishi kerak
     dp.include_routers(start.router, admin.router, user.router)
+    tracker = TrackUsers()
+    dp.message.outer_middleware(tracker)
+    dp.callback_query.outer_middleware(tracker)
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
